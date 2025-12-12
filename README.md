@@ -36,8 +36,6 @@ You need Python 3 installed to run the scripts.
 2.  Navigate to the project folder.
 3.  Run the graph script to see the traversal outputs.
 
-```bash
-python src/graph.py
 ---
 
 # Türkçe Açıklama
