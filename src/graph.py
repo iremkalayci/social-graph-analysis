@@ -48,6 +48,7 @@ class Graph:
                     if komsu not in visited:
                         queue.append(komsu)
         return visited
+    
     def dfs(self,start_id:int): #depth first search
         if start_id not in self.nodes:
             raise ValueError("baslangic dugumu")       
@@ -58,7 +59,50 @@ class Graph:
                 if komsu not in visited:
                     explore(komsu) #recursive
         explore(start_id)
-        return visited         
+        return visited  
+    def max_weight_edge(self):
+        if not self.edges:
+            return None
+        return max(self.edges.values(),key=lambda e:e.weight)
+    def min_weight_edge(self):
+        if not self.edges:
+            return None
+        return min(self.edges.values(),key=lambda e:e.weight)
+
+        
+       
+    def avarage_degree(self):
+        if not self.nodes:
+            return 0.0
+        toplam=0
+        for node in self.nodes.values(): #dictionary nin degerlerini alir;dongu de graf icindeki kullanicilari tek tek gezer.
+            toplam+=len(node.neighbors)   
+        return toplam/len(self.nodes) 
+         #derece/kisi sayisi
+        #self.nodes → agdaki herkesin tutuldugu ana yer
+        # neighbors →o kisinin baglı olduğu kişiler
+        # for node in self.nodes.values() - her kullanıcıyı gez
+        # len(node.neighbors) - komsu sayısını al
+        # toplam += ... - topla
+        # toplam / len(self.nodes) - ort bul
+    def connected_components(self):
+        visited = set()
+        components = []
+
+        for node_id in self.nodes:
+           if node_id not in visited:
+                comp = self.bfs(node_id)
+                components.append(comp)
+                visited |= comp  # birleşim
+        return components
+
+      
+
+    
+
+
+
+    
 if __name__=="__main__":
     print("graf test ediliyor")
     g=Graph()
@@ -84,4 +128,12 @@ if __name__=="__main__":
     print("bitti")
     print("\nBFS Testi:",g.bfs(1))
     print("DFS Testi:",g.dfs(1))
+    mx=g.max_weight_edge()
+    mn=g.min_weight_edge()
+    print("en guclu baglanti:",mx.a,"-",mx.b,"->",mx.weight)
+    print("en zayif baglanti:",mn.a,"-",mn.b,"->",mn.weight)
+    print("\nConnected Components:")
+for idx, comp in enumerate(g.connected_components(), start=1):
+    print(f"Component {idx}: {sorted(comp)}")
+
           
