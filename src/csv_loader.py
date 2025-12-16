@@ -1,5 +1,5 @@
 import csv
-from node import Node
+from src.node import Node
 
 class CSVLoader:
     @staticmethod

@@ -1,7 +1,16 @@
-from node import Node
-from edge import Edge
+from src.node import Node
+from src.edge import Edge
 import math
-from csv_loader import CSVLoader
+from src.csv_loader import CSVLoader
+from src.algorithms.bfs import BFS
+from src.algorithms.dfs import DFS
+from src.algorithms.dijkstra import Dijkstra
+from src.algorithms.astar import AStar
+from src.algorithms.coloring import WelshPowell
+
+
+
+
 
 class WeightCalculator:
     @staticmethod
@@ -94,46 +103,80 @@ class Graph:
                 comp = self.bfs(node_id)
                 components.append(comp)
                 visited |= comp  # birleşim
-        return components
+        return components 
+    def run_bfs(self, start_id: int):
+        algo = BFS(self)
+        return algo.run(start_id)
 
-      
+    def run_dfs(self, start_id: int):
+        algo = DFS(self)
+        return algo.run(start_id)
+    def run_dijkstra(self,start_id:int,end_id:int):
+        algo=Dijkstra(self)
+        return algo.run(start_id, end_id)
+    def run_astar(self, start_id: int, end_id: int):
+        algo = AStar(self)
+        return algo.run(start_id, end_id)
+    def color_graph(self):
+        algo = WelshPowell(self)
+        return algo.color()
 
+
+        
     
-
-
-
-    
-if __name__=="__main__":
+if __name__ == "__main__":
     print("graf test ediliyor")
-    g=Graph()
-    n1=Node(1,"user1",0.8,12,3)
-    n2=Node(2,"user2",0.4,5,2)
+
+    g = Graph()
+    n1 = Node(1, "user1", 0.8, 12, 3)
+    n2 = Node(2, "user2", 0.4, 5, 2)
+
     g.add_node(n1)
     g.add_node(n2)
-    g.add_edge(1,2)
+    g.add_edge(1, 2)
 
-    print("dugumler:",g.nodes)
-    print("kenarlar",{k:e.weight for k,e in g.edges.items()})
+    print("dugumler:", g.nodes)
+    print("kenarlar:", {k: e.weight for k, e in g.edges.items()})
     print("test bitti")
+
     print("csv testing")
-    nodes=CSVLoader.load_nodes("test.csv")
-    g=Graph()
+    nodes = CSVLoader.load_nodes("test.csv")
+    g = Graph()
+
     for n in nodes:
         g.add_node(n)
+
     for n in nodes:
         for komsu in n.neighbors:
-            g.add_edge(n.id,komsu)
-    print("toplam dugum sayisi",len(g.nodes))
-    print("toplam kenar sayisi:",len(g.edges))
-    print("bitti")
-    print("\nBFS Testi:",g.bfs(1))
-    print("DFS Testi:",g.dfs(1))
-    mx=g.max_weight_edge()
-    mn=g.min_weight_edge()
-    print("en guclu baglanti:",mx.a,"-",mx.b,"->",mx.weight)
-    print("en zayif baglanti:",mn.a,"-",mn.b,"->",mn.weight)
-    print("\nConnected Components:")
-for idx, comp in enumerate(g.connected_components(), start=1):
-    print(f"Component {idx}: {sorted(comp)}")
+            g.add_edge(n.id, komsu)
 
-          
+    print("toplam dugum sayisi:", len(g.nodes))
+    print("toplam kenar sayisi:", len(g.edges))
+    print("bitti")
+
+    print("BFS Testi:", g.run_bfs(1))
+    print("DFS Testi:", g.run_dfs(1))
+
+    mx = g.max_weight_edge()
+    mn = g.min_weight_edge()
+    print("en guclu baglanti:", mx.a, "-", mx.b, "->", mx.weight)
+    print("en zayif baglanti:", mn.a, "-", mn.b, "->", mn.weight)
+
+    print("\nConnected Components:")
+    for idx, comp in enumerate(g.connected_components(), start=1):
+        print(f"Component {idx}: {sorted(comp)}")
+
+    dist, path = g.run_dijkstra(1, 3)
+    print("\nDijkstra Testi:")
+    print("Mesafe:", dist)
+    print("Yol:", path)
+
+    dist, path = g.run_astar(1, 3)
+    print("\nA* Testi:")
+    print("Mesafe:", dist)
+    print("Yol:", path)
+
+    print("\nGraph Coloring (Welsh–Powell):")
+    colors = g.color_graph()
+    for node_id, color in colors.items():
+        print(f"Node {node_id} -> Color {color}")
