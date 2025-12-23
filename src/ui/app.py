@@ -37,7 +37,7 @@ class App(ctk.CTk):
         self.sidebar.grid_rowconfigure(10, weight=1) # Boşluk bırakmak için
 
         # Başlık Logo
-        self.lbl_logo = ctk.CTkLabel(self.sidebar, text="YEDİNCİREM", font=ctk.CTkFont(size=20, weight="bold"))
+        self.lbl_logo = ctk.CTkLabel(self.sidebar, text="Social Graph Analysis", font=ctk.CTkFont(size=20, weight="bold"))
         self.lbl_logo.grid(row=0, column=0, padx=20, pady=(20, 10))
 
         # Buton Grupları
