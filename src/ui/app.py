@@ -6,41 +6,34 @@ from src.node import Node
 import random
 import time
 
-# --- MODERN AYARLAR ---
-ctk.set_appearance_mode("Dark")  # Mod: "System" (Standart), "Dark", "Light"
-ctk.set_default_color_theme("blue")  # Tema: "blue" (Varsayılan), "green", "dark-blue"
+ctk.set_appearance_mode("Dark")  
+ctk.set_default_color_theme("blue")  
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         
-        # Pencere Ayarları
         self.title("Social Graph Analysis")
         self.geometry("1200x800")
         
-        # Graf Verisi
         self.graph = Graph()
         self.node_positions = {}
         self.node_radius = 20
         
-        # Grid Sistemi Ayarları (Ekranı bölüyoruz)
-        self.grid_columnconfigure(1, weight=1) # Sağ taraf genişlesin
-        self.grid_rowconfigure(0, weight=1)    # Aşağı doğru genişlesin
+        self.grid_columnconfigure(1, weight=1) 
+        self.grid_rowconfigure(0, weight=1)    
 
         self.setup_ui()
         self.status_label.configure(text="System Ready. Waiting for data...")
 
     def setup_ui(self):
-        # --- 1. SOL MENÜ (SIDEBAR) ---
         self.sidebar = ctk.CTkFrame(self, width=250, corner_radius=0)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
-        self.sidebar.grid_rowconfigure(10, weight=1) # Boşluk bırakmak için
+        self.sidebar.grid_rowconfigure(10, weight=1) 
 
-        # Başlık Logo
         self.lbl_logo = ctk.CTkLabel(self.sidebar, text="Social Graph Analysis", font=ctk.CTkFont(size=20, weight="bold"))
         self.lbl_logo.grid(row=0, column=0, padx=20, pady=(20, 10))
 
-        # Buton Grupları
         self.create_sidebar_label("DATA MANAGEMENT", row=1)
         self.create_sidebar_btn("Add Node (+)", self.add_node_dialog, row=2)
         self.create_sidebar_btn("Update/Edit Node", self.update_node_dialog, row=3)
@@ -63,34 +56,30 @@ class App(ctk.CTk):
         self.create_sidebar_btn("Welsh-Powell Color", self.run_coloring_ui, row=17, color="orange")
         self.create_sidebar_btn("Reset View", self.reset_view, row=18, color="red")
 
-        # --- 2. SAĞ TARAF (CANVAS & STATUS) ---
         self.right_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
         self.right_frame.grid_rowconfigure(0, weight=1)
         self.right_frame.grid_columnconfigure(0, weight=1)
 
-        # Çizim Alanı (CustomTkinter içinde standart Canvas kullanıyoruz çünkü çizim yeteneği en iyi onda)
-        self.canvas_frame = ctk.CTkFrame(self.right_frame, fg_color="#ecf0f1") # Açık gri arka plan
+        self.canvas_frame = ctk.CTkFrame(self.right_frame, fg_color="#ecf0f1") 
         self.canvas_frame.grid(row=0, column=0, sticky="nsew")
         
         self.canvas = tk.Canvas(self.canvas_frame, bg="#ecf0f1", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True, padx=5, pady=5)
         self.canvas.bind("<Button-1>", self.on_canvas_click)
 
-        # Durum Çubuğu (En altta şık bir bar)
         self.status_frame = ctk.CTkFrame(self.right_frame, height=40, corner_radius=10)
         self.status_frame.grid(row=1, column=0, sticky="ew", pady=(10, 0))
         
         self.status_label = ctk.CTkLabel(self.status_frame, text="System Ready", font=("Consolas", 12))
         self.status_label.pack(side="left", padx=20)
 
-    # --- YARDIMCI UI FONKSİYONLARI ---
+
     def create_sidebar_label(self, text, row):
         lbl = ctk.CTkLabel(self.sidebar, text=text, anchor="w", text_color="#bdc3c7", font=("Arial", 10, "bold"))
         lbl.grid(row=row, column=0, padx=20, pady=(10, 0), sticky="ew")
 
     def create_sidebar_btn(self, text, command, row, color="standard"):
-        # Renk ayarları
         fg_color = None
         hover_color = None
         if color == "green":
@@ -106,66 +95,54 @@ class App(ctk.CTk):
         btn = ctk.CTkButton(self.sidebar, text=text, command=command, fg_color=fg_color, hover_color=hover_color)
         btn.grid(row=row, column=0, padx=20, pady=5, sticky="ew")
 
-    # --- ÇİZİM MANTIĞI (GRAFİKSEL İYİLEŞTİRMELER) ---
     def draw_graph(self, highlight_nodes=None, color_map=None, path_edges=None):
         self.canvas.delete("all")
 
-        # Kenarlar (Edges)
         for key, edge in self.graph.edges.items():
             if edge.a in self.node_positions and edge.b in self.node_positions:
                 x1, y1 = self.node_positions[edge.a]
                 x2, y2 = self.node_positions[edge.b]
                 
-                color = "#95a5a6" # Gri
+                color = "#95a5a6" 
                 width = 2
                 dash = None
                 
-                # Yol vurgusu (Dijkstra/A*)
                 if path_edges and tuple(sorted((edge.a, edge.b))) in path_edges:
-                    color = "#e74c3c" # Kırmızı
+                    color = "#e74c3c" 
                     width = 4
                 
                 self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width, dash=dash, smooth=True)
                 
-                # Ağırlık etiketi (Modern küçük kutucuk)
                 mx, my = (x1+x2)/2, (y1+y2)/2
                 self.canvas.create_oval(mx-10, my-10, mx+10, my+10, fill="white", outline="#bdc3c7")
                 self.canvas.create_text(mx, my, text=f"{edge.weight:.1f}", font=("Arial", 7), fill="black")
 
-        # Düğümler (Nodes)
         for node_id, pos in self.node_positions.items():
             x, y = pos
             r = self.node_radius
             
-            fill_color = "#3498db" # Modern Mavi
+            fill_color = "#3498db" 
             outline_color = "white"
             
             if color_map and node_id in color_map:
-                # Pastel Renk Paleti
                 palette = ["#e57373", "#81c784", "#64b5f6", "#fff176", "#ffb74d", "#ba68c8", "#90a4ae"]
                 fill_color = palette[color_map[node_id] % len(palette)]
             elif highlight_nodes and node_id in highlight_nodes:
-                fill_color = "#f1c40f" # Parlak Sarı (Seçili)
+                fill_color = "#f1c40f"
 
-            # Gölge efekti (Node'un altına hafif gri daire)
             self.canvas.create_oval(x-r+3, y-r+3, x+r+3, y+r+3, fill="#bdc3c7", outline="")
             
-            # Asıl Düğüm
             self.canvas.create_oval(x-r, y-r, x+r, y+r, fill=fill_color, outline=outline_color, width=2)
             self.canvas.create_text(x, y, text=str(node_id), font=("Arial", 10, "bold"), fill="white")
             
-            # İsim Etiketi
             node_name = self.graph.nodes[node_id].name
             self.canvas.create_text(x, y+r+15, text=node_name[:12], font=("Arial", 9, "bold"), fill="#2c3e50")
 
-    # --- İŞLEVLER (MANTIK DEĞİŞMEDİ, SADECE STATUS BAR GÜNCELLENDİ) ---
-    # Bu fonksiyonlar önceki kodla birebir aynı mantıkta, sadece self.status_label.configure kullanıyoruz.
+
     
     def add_node_dialog(self):
-        # CustomTkinter'da simpledialog yok, standart olanı kullanıyoruz ama arka planda işliyor
         win = tk.Toplevel(self)
         win.title("Add Node")
-        # Basit tutmak için standart form yapısı
         fields = ["ID", "Name", "Activity (0-1)", "Interaction", "Connection Count"]
         entries = []
         for i, f in enumerate(fields):
@@ -187,11 +164,6 @@ class App(ctk.CTk):
                 messagebox.showerror("Error", str(e))
         tk.Button(win, text="SAVE", command=submit).grid(row=len(fields), columnspan=2, pady=10)
 
-    # ... Diğer update/remove fonksiyonlarını buraya ekleyeceğiz (Önceki kodun aynısı) ...
-    # Kodu çok uzatmamak için buraya temel mantığı koydum. 
-    # Önceki kodundaki "remove_node_dialog", "load_csv" vb. fonksiyonların hepsini 
-    # buraya kopyala-yapıştır yapabilirsin. Tek fark:
-    # self.status_var.set(...) YERİNE self.status_label.configure(text=...) KULLAN.
 
     def load_csv(self):
         from tkinter import filedialog
@@ -235,7 +207,6 @@ class App(ctk.CTk):
             except Exception as e:
                 messagebox.showerror("Error", str(e))
 
-    # --- ALGORİTMA FONKSİYONLARI (Status update kısmına dikkat) ---
     def run_bfs_ui(self):
         start = simpledialog.askinteger("BFS", "Start Node ID:")
         if start:
@@ -306,7 +277,7 @@ class App(ctk.CTk):
         self.draw_graph()
         self.status_label.configure(text="View Reset.")
 
-    def add_edge_dialog(self): # Kısaltılmış örnek, önceki mantığın aynısı
+    def add_edge_dialog(self): 
          a = simpledialog.askinteger("Link", "Source ID:")
          b = simpledialog.askinteger("Link", "Target ID:")
          if a and b:
@@ -316,7 +287,7 @@ class App(ctk.CTk):
                  self.status_label.configure(text=f"Linked: {a}-{b}")
              except Exception as e: messagebox.showerror("Error", str(e))
     
-    def remove_edge_dialog(self): # Kısaltılmış örnek
+    def remove_edge_dialog(self): 
          a = simpledialog.askinteger("Unlink", "Source ID:")
          b = simpledialog.askinteger("Unlink", "Target ID:")
          if a and b:
@@ -326,7 +297,7 @@ class App(ctk.CTk):
                  self.status_label.configure(text=f"Unlinked: {a}-{b}")
              except Exception as e: messagebox.showerror("Error", str(e))
 
-    def remove_node_dialog(self): # Kısaltılmış örnek
+    def remove_node_dialog(self):
          nid = simpledialog.askinteger("Remove", "Node ID:")
          if nid:
              try:
@@ -336,11 +307,9 @@ class App(ctk.CTk):
                  self.status_label.configure(text=f"Node Removed: {nid}")
              except Exception as e: messagebox.showerror("Error", str(e))
     
-    def update_node_dialog(self): # Basit update, öncekiyle aynı mantık
+    def update_node_dialog(self):
         nid = simpledialog.askinteger("Update", "Node ID:")
         if nid and nid in self.graph.nodes:
-             # Burada normalde Toplevel açılır, örnek için geçiyorum. 
-             # Eski kodundaki update_node_dialog'u buraya yapıştır.
              messagebox.showinfo("Info", "Update dialog açılacak (Eski kodu ekle)")
         
     def on_canvas_click(self, event):

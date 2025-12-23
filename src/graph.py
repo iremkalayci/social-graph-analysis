@@ -34,22 +34,19 @@ class Graph:
         if a_id == b_id:
             raise ValueError("Self-loop (kendine bağlantı) yasak.")
         
-        # Yönsüz graf olduğu için (1,2) ile (2,1) aynıdır. Sıralı tuple key olarak tutulur.
         key = tuple(sorted((a_id, b_id)))
         
         if key in self.edges:
-            return # Zaten varsa ekleme
+            return 
             
         if a_id not in self.nodes or b_id not in self.nodes:
             raise KeyError("Node bulunamadı.")
             
-        # Ağırlığı hesapla
         w = WeightCalculator.calc(self.nodes[a_id], self.nodes[b_id])
         e = Edge(a_id, b_id, w)
         
         self.edges[key] = e
         
-        # Komşuluk listelerine ekle
         self.nodes[a_id].neighbors.add(b_id)
         self.nodes[b_id].neighbors.add(a_id)
    
@@ -59,8 +56,6 @@ class Graph:
         if node_id not in self.nodes:
             raise ValueError("Düğüm bulunamadı.")
         
-        # 1. Bu düğüme bağlı kenarları temizle
-        # Kopyasını alıyoruz çünkü döngü içinde sözlük değiştiremeyiz
         edges_to_remove = []
         for key, edge in self.edges.items():
             if edge.a == node_id or edge.b == node_id:
@@ -69,12 +64,10 @@ class Graph:
         for key in edges_to_remove:
             del self.edges[key]
 
-        # 2. Diğer düğümlerin komşuluk listesinden bu ID'yi çıkar
         for other_node in self.nodes.values():
             if node_id in other_node.neighbors:
                 other_node.neighbors.remove(node_id)
 
-        # 3. Düğümü sil
         del self.nodes[node_id]
 
     def remove_edge(self, a_id: int, b_id: int):
@@ -83,10 +76,8 @@ class Graph:
         if key not in self.edges:
             raise ValueError("Bağlantı yok.")
         
-        # Kenarı sil
         del self.edges[key]
         
-        # Komşuluklardan çıkar
         if a_id in self.nodes and b_id in self.nodes[a_id].neighbors:
             self.nodes[a_id].neighbors.remove(b_id)
         if b_id in self.nodes and a_id in self.nodes[b_id].neighbors:
@@ -102,9 +93,6 @@ class Graph:
         node.aktiflik = akt
         node.etkilesim = etk
         node.baglanti_sayisi = bagl
-        # Not: Komşular değişmez, sadece özellikler güncellenir.
-
-    # --- ALGORİTMA TETİKLEYİCİLERİ ---
     
     def run_bfs(self, start_id: int):
         algo = BFS(self)
@@ -126,8 +114,6 @@ class Graph:
         algo = WelshPowell(self)
         return algo.color()
 
-    # --- YARDIMCI METOTLAR ---
-
     def max_weight_edge(self):
         if not self.edges: return None
         return max(self.edges.values(), key=lambda e: e.weight)
@@ -141,7 +127,6 @@ class Graph:
         components = []
         for node_id in self.nodes:
            if node_id not in visited:
-                # BFS sınıfını kullanarak bileşeni bul
                 comp = self.run_bfs(node_id)
                 components.append(comp)
                 visited |= comp 

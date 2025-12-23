@@ -11,34 +11,28 @@ class CSVLoader:
         if not os.path.exists(path):
             raise FileNotFoundError(f"Dosya bulunamadı: {path}")
 
-        with open(path, "r", encoding="utf-8-sig") as f: # utf-8-sig Excel karakter sorununu çözer
-            # Dosyanın ilk satırını oku ve ayırıcıyı (delimiter) tahmin et
+        with open(path, "r", encoding="utf-8-sig") as f: 
             sample = f.read(1024)
-            f.seek(0) # Başa dön
+            f.seek(0) 
             
             try:
                 dialect = csv.Sniffer().sniff(sample)
                 delimiter = dialect.delimiter
             except:
-                delimiter = ',' # Tahmin edemezse varsayılan virgül
+                delimiter = ',' 
             
-            # Tahmin edilen ayırıcı ile oku
             reader = csv.DictReader(f, delimiter=delimiter)
             
-            # Sütun isimlerindeki boşlukları temizle (Örn: " Name " -> "Name")
             reader.fieldnames = [field.strip() for field in reader.fieldnames]
 
             for row in reader:
-                # Düğüm ID zorunlu
                 if "DugumId" not in row:
                     continue
                     
                 node_id = int(row["DugumId"])
                 
-                # İsim kontrolü (Hem 'Name' hem 'İsim' sütununa bakar)
                 name = row.get("Name") or row.get("Isim") or f"Node_{node_id}"
                 
-                # Özellikler (Hata verirse 0.0 ata)
                 try:
                     akt = float(row.get("Ozellik_I", 0))
                     etk = float(row.get("Ozellik_II", 0))
@@ -46,11 +40,9 @@ class CSVLoader:
                 except ValueError:
                     akt, etk, bagl = 0.0, 0.0, 0
                 
-                # Komşular
                 komsular_str = row.get("Komsular", "")
                 komsular = []
                 if komsular_str and komsular_str.lower() != "none":
-                    # Tırnak ve boşluk temizliği
                     clean_str = komsular_str.replace('"', '').replace("'", "")
                     komsular = [k.strip() for k in clean_str.split(',') if k.strip().isdigit()]
 
@@ -61,7 +53,6 @@ class CSVLoader:
                         
                 nodes.append(n)
 
-                # Pozisyon
                 if "Pos_X" in row and "Pos_Y" in row:
                     try:
                         positions[node_id] = (int(row["Pos_X"]), int(row["Pos_Y"]))
