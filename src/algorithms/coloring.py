@@ -3,11 +3,10 @@ class WelshPowell:
         self.graph = graph
 
     def color(self):
-
+        # Dereceye göre azalan, eşitlikte id'ye göre artan (deterministik)
         nodes_sorted = sorted(
             self.graph.nodes.values(),
-            key=lambda n: len(n.neighbors),
-            reverse=True
+            key=lambda n: (-len(n.neighbors), n.id)
         )
 
         color_map = {}
@@ -17,17 +16,19 @@ class WelshPowell:
             if node.id in color_map:
                 continue
 
+            # Yeni bir renk başlat
             color_map[node.id] = current_color
 
+            # Aynı renge boyanabilecek diğer düğümleri seç
             for other in nodes_sorted:
-                if other.id not in color_map:
-                    conflict = False
-                    for neighbor in other.neighbors:
-                        if neighbor in color_map and color_map[neighbor] == current_color:
-                            conflict = True
-                            break
-                    if not conflict:
-                        color_map[other.id] = current_color
+                if other.id in color_map:
+                    continue
+
+                # Çakışma: other'ın komşularından biri bu renkte mi?
+                if any(color_map.get(nei) == current_color for nei in other.neighbors):
+                    continue
+
+                color_map[other.id] = current_color
 
             current_color += 1
 

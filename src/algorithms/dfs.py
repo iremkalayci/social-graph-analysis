@@ -6,12 +6,14 @@ class DFS(Algorithm):
             raise ValueError("Baslangic dugumu yok")
 
         visited = set()
+        order = []  # ziyaret sırası
 
         def explore(n):
             visited.add(n)
+            order.append(n)
             for komsu in self.graph.nodes[n].neighbors:
                 if komsu not in visited:
                     explore(komsu)
 
         explore(start_id)
-        return visited
+        return order
