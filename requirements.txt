@@ -1,0 +1,7 @@
+customtkinter
+networkx
+matplotlib
+pandas
+numpy
+pillow
+requests
