@@ -3,7 +3,7 @@ class WelshPowell:
         self.graph = graph
 
     def color(self):
-        # Düğümleri dereceye göre azalan sırala
+
         nodes_sorted = sorted(
             self.graph.nodes.values(),
             key=lambda n: len(n.neighbors),

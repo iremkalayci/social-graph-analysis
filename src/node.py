@@ -5,9 +5,9 @@ class Node:
         self.aktiflik = float(akt)
         self.etkilesim = float(etk)
         self.baglanti_sayisi = int(bagl_say)
-        self.neighbors = set()  # bu kullanicinin kimlerle baglantisi varsa id lerini burada tut., sette tutma sebebim kontrol O(1) hizinda yapiliyor.
+        self.neighbors = set()
 
-    def to_dict(self): #csv kaydederken kullaniyoruz, node u dictionary haline ceviriyor.
+    def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,

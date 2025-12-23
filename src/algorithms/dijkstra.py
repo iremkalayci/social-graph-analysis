@@ -25,11 +25,6 @@ class Dijkstra(Algorithm):
                 key = tuple(sorted((current, komsu)))
                 edge = self.graph.edges[key]
                 
-                # KRİTİK DÜZELTME:
-                # Kenar ağırlığı (Benzerlik) ne kadar yüksekse, Maliyet o kadar DÜŞÜK olmalı.
-                # Bu yüzden 1/weight kullanıyoruz.
-                # Örn: Benzerlik 1.0 ise Maliyet 1.0
-                # Örn: Benzerlik 0.1 ise Maliyet 10.0 (Uzak)
                 cost = 1.0 / edge.weight 
                 
                 new_dist = current_dist + cost
@@ -44,11 +39,10 @@ class Dijkstra(Algorithm):
         while cur in previous:
             path.append(cur)
             cur = previous[cur]
-        if path: # Yol bulunduysa başlangıcı ekle
+        if path: 
             path.append(start_id)
         path.reverse()
 
-        # Eğer yol yoksa (path boşsa ve start!=end) mesafe sonsuzdur
         if not path and start_id != end_id:
             return float("inf"), []
             

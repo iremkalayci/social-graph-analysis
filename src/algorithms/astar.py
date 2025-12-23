@@ -4,7 +4,7 @@ from src.algorithms.base import Algorithm
 
 class AStar(Algorithm):
     def heuristic(self, a, b):
-        # Basit sezgisel: Node ID farkı (veya 0 verip Dijkstra gibi çalıştırabilirsin)
+
         return 0 
 
     def run(self, start_id, end_id):
@@ -29,7 +29,6 @@ class AStar(Algorithm):
                 edge_key = tuple(sorted((current, neighbor)))
                 weight = self.graph.edges[edge_key].weight
                 
-                # KRİTİK DÜZELTME: Benzerlik -> Maliyet Dönüşümü
                 cost = 1.0 / weight
                 
                 tentative = g_score[current] + cost
