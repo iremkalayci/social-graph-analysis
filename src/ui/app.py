@@ -46,6 +46,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.drag_data = {"x": 0, "y": 0, "item": None, "node_id": None}
+        self.last_click_pos = None  # Son tıklanan pozisyonu saklamak için
       
         self.title("Social Graph Analysis")
         self.geometry("1200x800")
@@ -58,10 +59,13 @@ class App(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)    
 
         self.setup_ui()
+        self.create_context_menu()  # Menüyü oluştur
+        
         self.status_label.configure(text="System Ready. Waiting for data...")
         self.canvas.bind("<ButtonPress-1>", self.on_drag_start)
         self.canvas.bind("<B1-Motion>", self.on_drag_motion)
         self.canvas.bind("<ButtonRelease-1>", self.on_drag_release)
+        self.canvas.bind("<Button-3>", self.on_right_click) # Sağ tık olayını bağla
 
     def setup_ui(self):
         self.sidebar = ctk.CTkFrame(self, width=250, corner_radius=0)
@@ -249,7 +253,7 @@ class App(ctk.CTk):
    
 
     
-    def add_node_dialog(self):
+    def add_node_dialog(self, pos=None):
         win = tk.Toplevel(self)
         win.title("Add Node")
         fields = ["ID", "Name", "Activity (0-1)", "Interaction", "Connection Count"]
@@ -265,12 +269,19 @@ class App(ctk.CTk):
                 vals = [e.get() for e in entries]
                 node = Node(int(vals[0]), vals[1], float(vals[2]), float(vals[3]), int(vals[4]))
                 self.graph.add_node(node)
-                self.node_positions[node.id] = (random.randint(50, 800), random.randint(50, 600))
+                
+                # Eğer pos parametresi geldiyse oraya, gelmediyse rastgele bir yere koy
+                if pos:
+                    self.node_positions[node.id] = pos
+                else:
+                    self.node_positions[node.id] = (random.randint(50, 800), random.randint(50, 600))
+                
                 self.draw_graph()
                 self.status_label.configure(text=f"Node Added: {node.name}")
                 win.destroy()
             except Exception as e:
                 messagebox.showerror("Error", str(e))
+        
         tk.Button(win, text="SAVE", command=submit).grid(row=len(fields), columnspan=2, pady=10)
 
 
@@ -512,7 +523,34 @@ class App(ctk.CTk):
         except: pass
     
   
+    def create_context_menu(self):
+        """Sağ tık menüsünü oluşturur."""
+        self.context_menu = tk.Menu(self, tearoff=0)
+        self.context_menu.add_command(label="Düğüm Ekle", command=self.add_node_context)
+        self.context_menu.add_command(label="Bağlantı (Edge) Oluştur", command=self.add_edge_dialog)
 
+    def on_right_click(self, event):
+        """Boş bir yere sağ tıklanırsa menüyü açar."""
+        # Tıklanan yerin bir düğüm olup olmadığını kontrol et
+        clicked_on_node = False
+        for nid, (nx, ny) in self.node_positions.items():
+            dist = ((nx - event.x)**2 + (ny - event.y)**2)**0.5
+            if dist < self.node_radius:
+                clicked_on_node = True
+                break
+        
+        # Eğer boş bir yerse menüyü göster
+        if not clicked_on_node:
+            self.last_click_pos = (event.x, event.y)
+            try:
+                self.context_menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                self.context_menu.grab_release()
+
+    def add_node_context(self):
+        """Sağ tıklanan pozisyonu kullanarak düğüm ekleme penceresini açar."""
+        if self.last_click_pos:
+            self.add_node_dialog(pos=self.last_click_pos)
     def reset_view(self):
         self.draw_graph()
         self.status_label.configure(text="View Reset.")
