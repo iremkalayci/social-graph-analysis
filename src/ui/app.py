@@ -7,6 +7,18 @@ from src.node import Node
 import random
 import time
 import networkx as nx
+# --- EKRAN KALİTESİNİ ARTIRAN KOD BLOĞU (ESKİSİNİ SİLİP BUNU YAPIŞTIRIN) ---
+import ctypes
+try:
+    # Windows 10/11 için en yüksek netlik modu (Per Monitor DPI V2)
+    ctypes.windll.shcore.SetProcessDpiAwareness(2) 
+except Exception:
+    try:
+        # Windows 8.1 ve eski sürümler için yedek netlik modu
+        ctypes.windll.user32.SetProcessDPIAware()
+    except: 
+        pass # Windows dışı sistemler için geç
+# -------------------------------------------------------------------------
 
 ctk.set_appearance_mode("Dark")  
 ctk.set_default_color_theme("blue")  
@@ -46,6 +58,8 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.drag_data = {"x": 0, "y": 0, "item": None, "node_id": None}
+        self.selected_edge_key = None
+        self.selected_node_id = None
         self.last_click_pos = None  
       
         self.title("Social Graph Analysis")
@@ -67,6 +81,13 @@ class App(ctk.CTk):
         self.canvas.bind("<ButtonRelease-1>", self.on_drag_release)
         self.canvas.bind("<Button-3>", self.on_right_click) 
         self.canvas.bind("<Double-Button-1>", self.on_double_click)
+        self.canvas.bind("<Configure>", lambda event: self.draw_graph())
+        
+        # 2. Açılışta ızgarayı hemen göster
+        # Küçük bir gecikme (100ms) ekliyoruz ki pencere tam yüklensin, sonra çizsin.
+        self.after(100, self.draw_graph)
+
+
     def setup_ui(self):
         self.sidebar = ctk.CTkFrame(self, width=250, corner_radius=0)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
@@ -85,18 +106,19 @@ class App(ctk.CTk):
         self.create_sidebar_label("FILE IO", row=7)
         self.create_sidebar_btn("Load CSV Data", self.load_csv, row=8, color="green")
         self.create_sidebar_btn("Save to CSV", self.save_csv, row=9, color="green")
+        self.create_sidebar_btn("Export HD Image", self.save_hd_image, row=10, color="green")
 
-        self.create_sidebar_label("ALGORITHMS", row=10)
-        self.create_sidebar_btn("Run BFS", self.run_bfs_ui, row=11)
-        self.create_sidebar_btn("Run DFS", self.run_dfs_ui, row=12)
-        self.create_sidebar_btn("Dijkstra Search", self.run_dijkstra_ui, row=13)
-        self.create_sidebar_btn("A* Search", self.run_astar_ui, row=14)
+        self.create_sidebar_label("ALGORITHMS", row=11)
+        self.create_sidebar_btn("Run BFS", self.run_bfs_ui, row=12)
+        self.create_sidebar_btn("Run DFS", self.run_dfs_ui, row=13)
+        self.create_sidebar_btn("Dijkstra Search", self.run_dijkstra_ui, row=14)
+        self.create_sidebar_btn("A* Search", self.run_astar_ui, row=15)
         
-        self.create_sidebar_label("ANALYSIS", row=15)
-        self.create_sidebar_btn("Top 5 Influencers", self.show_top_nodes, row=16, color="orange")
-        self.create_sidebar_btn("Welsh-Powell Color", self.run_coloring_ui, row=17, color="orange")
-        self.create_sidebar_btn("Reset View", self.reset_view, row=18, color="red")
-        self.create_sidebar_btn("Clear All Data", self.clear_all_nodes, row=19, color="red")
+        self.create_sidebar_label("ANALYSIS", row=16)
+        self.create_sidebar_btn("Top 5 Influencers", self.show_top_nodes, row=17, color="orange")
+        self.create_sidebar_btn("Welsh-Powell Color", self.run_coloring_ui, row=18, color="orange")
+        self.create_sidebar_btn("Reset View", self.reset_view, row=19, color="red")
+        self.create_sidebar_btn("Clear All Data", self.clear_all_nodes, row=20, color="red")
         self.right_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
         self.right_frame.grid_rowconfigure(0, weight=1)
@@ -179,67 +201,97 @@ class App(ctk.CTk):
 
         btn = ctk.CTkButton(self.sidebar, text=text, command=command, fg_color=fg_color, hover_color=hover_color)
         btn.grid(row=row, column=0, padx=20, pady=5, sticky="ew")
+
     def draw_graph(self, highlight_nodes=None, color_map=None, path_edges=None, custom_palette=None):
         self.canvas.delete("all")
+        
+        self.draw_grid()
+        # Etiketleri (Labels) en üstte tutmak için bir liste
+        labels_to_draw = []
 
-        # --- Kenar Çizimi (Burada değişiklik yok) ---
+        # --- KENAR ÇİZİMİ ---
         for key, edge in self.graph.edges.items():
             if edge.a in self.node_positions and edge.b in self.node_positions:
                 x1, y1 = self.node_positions[edge.a]
                 x2, y2 = self.node_positions[edge.b]
                 
-                color = "#95a5a6"
-                width = 2
+                # Varsayılan stil (İnce ve Gri)
+                edge_color = "#bdc3c7"  # Açık gri (Daha az dikkat çeksin)
+                width = 1.0  # Varsayılan çok ince
                 
+                # Ağırlığa göre kalınlık ayarı (Ters orantı: Küçük ağırlık = Yakın Mesafe = Kalın Çizgi)
                 try:
                     w = edge.weight
-                    if w < 2.0: width = 4      
-                    elif w < 5.0: width = 3    
-                    elif w < 10.0: width = 2   
-                    else: width = 1            
-
-                    gray_val = int(max(50, min(220, 50 + (w * 8))))
-                    color = f"#{gray_val:02x}{gray_val:02x}{gray_val:02x}"
+                    if w < 2.0: width = 3.0      # Çok yakın (Kalın)
+                    elif w < 5.0: width = 2.0    # Orta
+                    elif w < 10.0: width = 1.5   # Uzak
+                    else: width = 1.0            # Çok uzak (İnce)
+                    
+                    # Renk koyuluğu (Yakınlar daha koyu)
+                    # 0.0 -> Koyu Gri, 20.0 -> Açık Gri
+                    gray_level = int(min(200, max(50, w * 10)))
+                    edge_color = f"#{gray_level:02x}{gray_level:02x}{gray_level:02x}"
                 except: pass 
 
+                # Eğer bir yol (Path) çiziliyorsa o çizgiyi belirginleştir
                 if path_edges and tuple(sorted((edge.a, edge.b))) in path_edges:
-                    color = "#e74c3c" 
-                    width = 4
+                    edge_color = "#e74c3c" # Kırmızı
+                    width = 4.0 # Yol daha kalın olsun
                 
-                self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width, smooth=True)
-                mx, my = (x1+x2)/2, (y1+y2)/2
-                self.canvas.create_oval(mx-9, my-9, mx+9, my+9, fill="white", outline="#bdc3c7")
-                self.canvas.create_text(mx, my, text=f"{edge.weight:.1f}", font=("Arial", 7), fill="black")
+                # Çizgiyi Çiz (capstyle=tk.ROUND köşeleri yumuşatır)
+                self.canvas.create_line(x1, y1, x2, y2, 
+                                      fill=edge_color, 
+                                      width=width, 
+                                      capstyle=tk.ROUND, smooth=True)
 
-        # --- Düğüm Çizimi ---
+                # Ağırlık Yazısını Hazırla (En son çizeceğiz ki çizginin üstünde kalsın)
+                mx, my = (x1+x2)/2, (y1+y2)/2
+                labels_to_draw.append((mx, my, f"{edge.weight:.2f}"))
+
+        # --- AĞIRLIK YAZILARI (Çizgilerin Üstüne) ---
+        for mx, my, text in labels_to_draw:
+            # Arkaya Beyaz Kutu (Okunabilirlik için)
+            # Yazı boyutuna göre dinamik kutu: x-12, y-8
+            self.canvas.create_rectangle(mx-14, my-8, mx+14, my+8, fill="white", outline="#bdc3c7", width=1)
+            # Yazı (Siyah ve Net)
+            self.canvas.create_text(mx, my, text=text, font=("Arial", 9, "bold"), fill="black")
+
+        # --- DÜĞÜM ÇİZİMİ ---
         for node_id, pos in self.node_positions.items():
             x, y = pos
             r = self.node_radius
             
-            fill_color = "#3498db"
-            outline_color = "white"
+            fill_color = "#3498db" 
+            outline_color = "black" # DEĞİŞİKLİK 1: Kenar Rengi Siyah (Eskiden white idi)
             
+            # Renklendirme veya Vurgulama Kontrolü
             if color_map and node_id in color_map:
-                # EĞER DIŞARIDAN PALET GELDİYSE ONU KULLAN, YOKSA VARSAYILANI
                 if custom_palette:
                     palette = custom_palette
                 else:
                     palette = ["#e57373", "#81c784", "#64b5f6", "#fff176", "#ffb74d", "#ba68c8", "#90a4ae", "#4db6ac"]
-                
                 fill_color = palette[color_map[node_id] % len(palette)]
             elif highlight_nodes and node_id in highlight_nodes:
                 fill_color = "#f1c40f" 
 
-            self.canvas.create_oval(x-r+3, y-r+3, x+r+3, y+r+3, fill="#bdc3c7", outline="")
-            self.canvas.create_oval(x-r, y-r, x+r, y+r, fill=fill_color, outline=outline_color, width=2, tags=f"node_{node_id}")
+            # Düğüm Gölgesi (Hafif derinlik hissi için arkada gri bir yuvarlak)
+            self.canvas.create_oval(x-r+2, y-r+2, x+r+2, y+r+2, fill="#95a5a6", outline="")
+            
+            # Düğümün Kendisi (Siyah kenarlı ve kalın)
+            # DEĞİŞİKLİK 2: width=3 yapıldı (Hafif kalınlaştırıldı)
+            self.canvas.create_oval(x-r, y-r, x+r, y+r, fill=fill_color, outline=outline_color, width=3, tags=f"node_{node_id}")
+            
+            # Düğüm ID (İçinde - Beyaz renk siyah konturda iyi durur)
             self.canvas.create_text(x, y, text=str(node_id), font=("Arial", 10, "bold"), fill="white", tags=f"node_{node_id}")
             
+            # Düğüm İsmi (Altında)
             if node_id in self.graph.nodes:
                 node_name = self.graph.nodes[node_id].name
-                display_name = node_name[:12] + "..." if len(node_name) > 12 else node_name
+                display_name = node_name[:12] + ".." if len(node_name) > 12 else node_name
                 self.canvas.create_text(x, y+r+15, text=display_name, font=("Arial", 9, "bold"), fill="#2c3e50")
-
-   
+        
+        # Etiketleri en üste taşı
+        self.canvas.tag_raise("label_bg")
 
     
     def add_node_dialog(self, pos=None):
@@ -316,6 +368,36 @@ class App(ctk.CTk):
             except Exception as e:
                 messagebox.showerror("Error", str(e))
 
+    def draw_grid(self):
+        """Arka plana sade teknik çizim ızgarası ekler."""
+        # Canvas boyutlarını al
+        w = self.canvas.winfo_width()
+        h = self.canvas.winfo_height()
+        
+        # Pencere henüz tam yüklenmediyse varsayılan genişliği kullan
+        if w < 50: w = 2000
+        if h < 50: h = 2000
+        
+        step = 50 # Karelerin boyutu
+        
+        # Dikey Çizgiler (X Ekseni)
+        for i in range(0, w, step):
+            # 100'ün katları biraz daha koyu olsun (Ana çizgiler)
+            if i % 100 == 0:
+                color = "#bdc3c7" # Koyu Gri
+            else:
+                color = "#e5e8e8" # Çok Açık Gri
+                
+            self.canvas.create_line(i, 0, i, h, fill=color, width=1)
+
+        # Yatay Çizgiler (Y Ekseni)
+        for i in range(0, h, step):
+            if i % 100 == 0:
+                color = "#bdc3c7"
+            else:
+                color = "#e5e8e8"
+                
+            self.canvas.create_line(0, i, w, i, fill=color, width=1)
 
     def show_results_table(self, title, columns, data):
         """Sonuçları yeni bir pencerede tablo olarak gösterir."""
@@ -524,26 +606,93 @@ class App(ctk.CTk):
     
   
     def create_context_menu(self):
-        """Sağ tık menüsünü oluşturur."""
+        """Sağ tık menülerini oluşturur."""
         self.context_menu = tk.Menu(self, tearoff=0)
         self.context_menu.add_command(label="Düğüm Ekle", command=self.add_node_context)
         self.context_menu.add_command(label="Bağlantı (Edge) Oluştur", command=self.add_edge_dialog)
+        
+        self.edge_menu = tk.Menu(self, tearoff=0)
+        self.edge_menu.add_command(label="Bu Bağlantıyı Sil", command=self.delete_edge_context)
+
+        self.node_menu = tk.Menu(self, tearoff=0)
+        self.node_menu.add_command(label="Bu Düğümü Sil", command=self.delete_node_context)
+        self.node_menu.add_command(label="Düzenle", command=lambda: self.update_node_dialog(passed_nid=self.selected_node_id))
 
     def on_right_click(self, event):
-        """Boş bir yere sağ tıklanırsa menüyü açar."""
-        clicked_on_node = False
-        for nid, (nx, ny) in self.node_positions.items():
-            dist = ((nx - event.x)**2 + (ny - event.y)**2)**0.5
-            if dist < self.node_radius:
-                clicked_on_node = True
-                break
+        """Sağ tıklama olayını yönetir: Node, Edge veya Boşluk tespiti."""
+        click_x, click_y = event.x, event.y
         
-        if not clicked_on_node:
-            self.last_click_pos = (event.x, event.y)
+        # 1. Önce Düğüm (Node) kontrolü (Öncelik düğümlerde)
+        for nid, (nx, ny) in self.node_positions.items():
+            dist = ((nx - click_x)**2 + (ny - click_y)**2)**0.5
+            if dist < self.node_radius:
+                # Tıklanan düğümü kaydet ve menüyü aç
+                self.selected_node_id = nid
+                try:
+                    self.node_menu.tk_popup(event.x_root, event.y_root)
+                finally:
+                    self.node_menu.grab_release()
+                return
+
+        # 2. Sonra Kenar (Edge) kontrolü
+        closest_edge = None
+        min_dist = 10.0 # Tıklama hassasiyeti (piksel)
+
+        for key, edge in self.graph.edges.items():
+            if edge.a in self.node_positions and edge.b in self.node_positions:
+                x1, y1 = self.node_positions[edge.a]
+                x2, y2 = self.node_positions[edge.b]
+                
+                # Noktanın çizgiye olan en kısa uzaklığını hesapla
+                d = self.point_to_line_dist(click_x, click_y, x1, y1, x2, y2)
+                
+                if d < min_dist:
+                    min_dist = d
+                    closest_edge = key
+        
+        # Eğer bir kenar bulunduysa menüyü aç
+        if closest_edge:
+            self.selected_edge_key = closest_edge
             try:
-                self.context_menu.tk_popup(event.x_root, event.y_root)
+                self.edge_menu.tk_popup(event.x_root, event.y_root)
             finally:
-                self.context_menu.grab_release()
+                self.edge_menu.grab_release()
+            return
+
+        # 3. Hiçbiri değilse Boş Alan menüsünü aç
+        self.last_click_pos = (click_x, click_y)
+        try:
+            self.context_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.context_menu.grab_release()
+
+    # --- Yardımcı Matematik Fonksiyonu ---
+    def point_to_line_dist(self, px, py, x1, y1, x2, y2):
+        """Bir noktanın (px,py) bir doğru parçasına (x1,y1 - x2,y2) en kısa uzaklığı."""
+        # Vektör hesaplamaları
+        A = px - x1
+        B = py - y1
+        C = x2 - x1
+        D = y2 - y1
+
+        dot = A * C + B * D
+        len_sq = C * C + D * D
+        param = -1
+        
+        if len_sq != 0:
+            param = dot / len_sq
+
+        if param < 0:
+            xx, yy = x1, y1
+        elif param > 1:
+            xx, yy = x2, y2
+        else:
+            xx = x1 + param * C
+            yy = y1 + param * D
+
+        dx = px - xx
+        dy = py - yy
+        return (dx * dx + dy * dy) ** 0.5
 
     def add_node_context(self):
         """Sağ tıklanan pozisyonu kullanarak düğüm ekleme penceresini açar."""
@@ -577,6 +726,50 @@ class App(ctk.CTk):
                  self.status_label.configure(text=f"Unlinked: {a}-{b}")
              except Exception as e: messagebox.showerror("Error", str(e))
 
+    def save_hd_image(self):
+        """Mevcut grafiği Matplotlib kullanarak yüksek kalitede kaydeder."""
+        try:
+            import matplotlib.pyplot as plt
+            import networkx as nx
+            
+            # 1. Yeni bir figür oluştur (Yüksek çözünürlük: dpi=300)
+            plt.figure(figsize=(12, 8), dpi=300)
+            
+            # 2. NetworkX grafiği oluştur
+            G = nx.Graph()
+            for nid, node in self.graph.nodes.items():
+                G.add_node(nid)
+            for key, edge in self.graph.edges.items():
+                G.add_edge(edge.a, edge.b, weight=edge.weight)
+            
+            # 3. Pozisyonları Tkinter'dan alıp Matplotlib formatına çevir
+            # Tkinter'da (0,0) sol üsttür, Matplotlib'de sol alttır. Y eksenini ters çeviriyoruz.
+            height = self.canvas.winfo_height()
+            pos = {nid: (x, height - y) for nid, (x, y) in self.node_positions.items()}
+            
+            # 4. Çizim İşlemi (Profesyonel Görünüm)
+            # Düğümler
+            nx.draw_networkx_nodes(G, pos, node_size=500, node_color="#3498db", edgecolors="black")
+            # Etiketler (ID)
+            nx.draw_networkx_labels(G, pos, font_color="white", font_size=10, font_weight="bold")
+            # Kenarlar
+            nx.draw_networkx_edges(G, pos, edge_color="#95a5a6", width=2, alpha=0.7)
+            # Kenar Ağırlıkları
+            edge_labels = {(e[0], e[1]): f"{e[2]['weight']:.2f}" for e in G.edges(data=True)}
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+            
+            plt.axis("off") # Eksenleri gizle
+            
+            # 5. Dosyayı Kaydet
+            filename = "Proje_Grafigi_HD.png"
+            plt.savefig(filename, bbox_inches="tight")
+            plt.close() # Hafızayı temizle
+            
+            messagebox.showinfo("Başarılı", f"Grafik yüksek kalitede kaydedildi:\n{filename}")
+            
+        except Exception as e:
+            messagebox.showerror("Hata", f"Görüntü kaydedilemedi: {str(e)}")
+
     def remove_node_dialog(self):
          nid = simpledialog.askinteger("Remove", "Node ID:", parent=self)
          if nid:
@@ -594,6 +787,19 @@ class App(ctk.CTk):
             self.draw_graph()
             
             self.status_label.configure(text="System cleared. Ready for new data.")
+    def delete_edge_context(self):
+        if self.selected_edge_key:
+            u, v = self.selected_edge_key
+            # Onay iste (İsteğe bağlı, kaldırmak istersen if bloğunu silip direkt silme yapabilirsin)
+            if messagebox.askyesno("Bağlantıyı Sil", f"{u} ve {v} arasındaki bağlantı silinsin mi?", parent=self):
+                try:
+                    self.graph.remove_edge(u, v)
+                    self.draw_graph()
+                    self.status_label.configure(text=f"Bağlantı silindi: {u}-{v}")
+                except Exception as e:
+                    messagebox.showerror("Hata", str(e), parent=self)
+            
+            self.selected_edge_key = None
     def update_node_dialog(self, passed_nid=None):
             if passed_nid is not None:
                 nid = passed_nid
@@ -638,6 +844,23 @@ class App(ctk.CTk):
                     messagebox.showerror("Error", str(e))
             
             tk.Button(win, text="UPDATE", command=submit, bg="#f1c40f", fg="black").grid(row=len(fields), columnspan=2, pady=10)
+
+    def delete_node_context(self):
+        if self.selected_node_id is not None:
+            nid = self.selected_node_id
+            if messagebox.askyesno("Düğümü Sil", f"Düğüm {nid} ve tüm bağlantıları silinsin mi?", parent=self):
+                try:
+                    self.graph.remove_node(nid)
+                    if nid in self.node_positions: 
+                        del self.node_positions[nid]
+                    
+                    self.draw_graph()
+                    self.status_label.configure(text=f"Node removed: {nid}")
+                except Exception as e:
+                    messagebox.showerror("Hata", str(e), parent=self)
+            
+            self.selected_node_id = None
+
     def on_double_click(self, event):
         for nid, (nx, ny) in self.node_positions.items():
             dist = ((nx - event.x)**2 + (ny - event.y)**2)**0.5
