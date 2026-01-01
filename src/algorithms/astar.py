@@ -11,10 +11,12 @@ class AStar(Algorithm):
           d_etk = n1.etkilesim - n2.etkilesim
           d_bag = n1.baglanti_sayisi - n2.baglanti_sayisi
 
+          # SADECE Öklid mesafesini döndür.
+          # Çünkü gerçek maliyet (Cost) = 1 + Distance.
+          # Heuristic (Distance) < Cost olduğu sürece A* en hızlı ve doğru yolu bulur.
           dist = math.sqrt(d_aktif**2 + d_etk**2 + d_bag**2)
-          w = 1.0 / (1.0 + dist)     # isterdeki ağırlık benzeri
-          return 1.0 - w             # hedefe benzerlik yüksekse küçük olsun
-  
+          
+          return dist
    
 
     def run(self, start_id, end_id):

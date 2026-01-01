@@ -17,7 +17,6 @@ class WeightCalculator:
         
         
         distance= math.sqrt(d_aktif**2 + d_etk**2 + d_bag**2)
-        
         weight=1.0/(1.0+distance)
         return weight
 class Graph:

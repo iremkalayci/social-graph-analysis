@@ -46,7 +46,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.drag_data = {"x": 0, "y": 0, "item": None, "node_id": None}
-        self.last_click_pos = None  # Son tıklanan pozisyonu saklamak için
+        self.last_click_pos = None  
       
         self.title("Social Graph Analysis")
         self.geometry("1200x800")
@@ -59,14 +59,14 @@ class App(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)    
 
         self.setup_ui()
-        self.create_context_menu()  # Menüyü oluştur
+        self.create_context_menu()  
         
         self.status_label.configure(text="System Ready. Waiting for data...")
         self.canvas.bind("<ButtonPress-1>", self.on_drag_start)
         self.canvas.bind("<B1-Motion>", self.on_drag_motion)
         self.canvas.bind("<ButtonRelease-1>", self.on_drag_release)
-        self.canvas.bind("<Button-3>", self.on_right_click) # Sağ tık olayını bağla
-
+        self.canvas.bind("<Button-3>", self.on_right_click) 
+        self.canvas.bind("<Double-Button-1>", self.on_double_click)
     def setup_ui(self):
         self.sidebar = ctk.CTkFrame(self, width=250, corner_radius=0)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
@@ -361,7 +361,7 @@ class App(ctk.CTk):
 
 
     def run_bfs_ui(self):
-        start = simpledialog.askinteger("BFS", "Start Node ID:")
+        start = simpledialog.askinteger("BFS", "Start Node ID:", parent=self)
         if start:
             try:
                 t0 = time.perf_counter()
@@ -391,7 +391,7 @@ class App(ctk.CTk):
             except Exception as e: messagebox.showerror("Error", str(e))
 
     def run_dfs_ui(self):
-        start = simpledialog.askinteger("DFS", "Start Node ID:")
+        start = simpledialog.askinteger("DFS", "Start Node ID:", parent=self)
         if start:
             try:
                 t0 = time.perf_counter()
@@ -417,8 +417,10 @@ class App(ctk.CTk):
             except Exception as e: messagebox.showerror("Error", str(e))
 
     def run_dijkstra_ui(self):
-        s = simpledialog.askinteger("Dijkstra", "Start ID:")
-        e = simpledialog.askinteger("Dijkstra", "End ID:")
+        s = simpledialog.askinteger("Dijkstra", "Start ID:", parent=self)
+        if s is None: 
+            return
+        e = simpledialog.askinteger("Dijkstra", "End ID:", parent=self)
         if s and e:
             try:
                 t0 = time.perf_counter()
@@ -447,8 +449,12 @@ class App(ctk.CTk):
             except Exception as err: messagebox.showerror("Error", str(err))
 
     def run_astar_ui(self):
-        s = simpledialog.askinteger("A*", "Start ID:")
-        e = simpledialog.askinteger("A*", "End ID:")
+        s = simpledialog.askinteger("A*", "Start ID:", parent=self)
+        
+        if s is None: 
+            return
+
+        e = simpledialog.askinteger("A*", "End ID:", parent=self)
         if s and e:
             try:
                 t0 = time.perf_counter()
@@ -531,7 +537,6 @@ class App(ctk.CTk):
 
     def on_right_click(self, event):
         """Boş bir yere sağ tıklanırsa menüyü açar."""
-        # Tıklanan yerin bir düğüm olup olmadığını kontrol et
         clicked_on_node = False
         for nid, (nx, ny) in self.node_positions.items():
             dist = ((nx - event.x)**2 + (ny - event.y)**2)**0.5
@@ -539,7 +544,6 @@ class App(ctk.CTk):
                 clicked_on_node = True
                 break
         
-        # Eğer boş bir yerse menüyü göster
         if not clicked_on_node:
             self.last_click_pos = (event.x, event.y)
             try:
@@ -556,8 +560,10 @@ class App(ctk.CTk):
         self.status_label.configure(text="View Reset.")
 
     def add_edge_dialog(self): 
-         a = simpledialog.askinteger("Link", "Source ID:")
-         b = simpledialog.askinteger("Link", "Target ID:")
+         a = simpledialog.askinteger("Link", "Source ID:", parent=self)
+         if a is None: 
+            return
+         b = simpledialog.askinteger("Link", "Target ID:", parent=self)
          if a and b:
              try:
                  self.graph.add_edge(a, b)
@@ -566,8 +572,10 @@ class App(ctk.CTk):
              except Exception as e: messagebox.showerror("Error", str(e))
     
     def remove_edge_dialog(self): 
-         a = simpledialog.askinteger("Unlink", "Source ID:")
-         b = simpledialog.askinteger("Unlink", "Target ID:")
+         a = simpledialog.askinteger("Unlink", "Source ID:", parent=self)
+         if a is None: 
+            return
+         b = simpledialog.askinteger("Unlink", "Target ID:", parent=self)
          if a and b:
              try:
                  self.graph.remove_edge(a, b)
@@ -576,7 +584,7 @@ class App(ctk.CTk):
              except Exception as e: messagebox.showerror("Error", str(e))
 
     def remove_node_dialog(self):
-         nid = simpledialog.askinteger("Remove", "Node ID:")
+         nid = simpledialog.askinteger("Remove", "Node ID:", parent=self)
          if nid:
              try:
                  self.graph.remove_node(nid)
@@ -585,11 +593,58 @@ class App(ctk.CTk):
                  self.status_label.configure(text=f"Node Removed: {nid}")
              except Exception as e: messagebox.showerror("Error", str(e))
     
-    def update_node_dialog(self):
-        nid = simpledialog.askinteger("Update", "Node ID:")
-        if nid and nid in self.graph.nodes:
-             messagebox.showinfo("Info", "Update dialog açılacak (Eski kodu ekle)")
-        
+    def update_node_dialog(self, passed_nid=None):
+            if passed_nid is not None:
+                nid = passed_nid
+            else:
+                nid = simpledialog.askinteger("Update", "Node ID:", parent=self)
+            
+            if nid is None: 
+                return 
+                
+            if nid not in self.graph.nodes:
+                messagebox.showerror("Error", f"Node {nid} bulunamadı!", parent=self)
+                return
+
+            node = self.graph.nodes[nid]
+            
+            win = tk.Toplevel(self)
+            win.title(f"Update Node {nid}")
+            
+            fields = ["Name", "Activity (0-1)", "Interaction", "Connection Count"]
+            current_vals = [node.name, str(node.aktiflik), str(node.etkilesim), str(node.baglanti_sayisi)]
+            entries = []
+
+            for i, field in enumerate(fields):
+                tk.Label(win, text=field).grid(row=i, column=0, padx=10, pady=5)
+                e = tk.Entry(win)
+                e.insert(0, current_vals[i])
+                e.grid(row=i, column=1, padx=10, pady=5)
+                entries.append(e)
+
+            def submit():
+                try:
+                    vals = [e.get() for e in entries]
+                    
+                    self.graph.update_node(nid, vals[0], float(vals[1]), float(vals[2]), int(vals[3]))
+                    
+                    self.draw_graph()
+                    self.status_label.configure(text=f"Node {nid} updated successfully.")
+                    win.destroy()
+                except ValueError:
+                    messagebox.showerror("Hata", "Lütfen sayısal alanlara geçerli sayılar giriniz.")
+                except Exception as e:
+                    messagebox.showerror("Error", str(e))
+            
+            tk.Button(win, text="UPDATE", command=submit, bg="#f1c40f", fg="black").grid(row=len(fields), columnspan=2, pady=10)
+    def on_double_click(self, event):
+        for nid, (nx, ny) in self.node_positions.items():
+            dist = ((nx - event.x)**2 + (ny - event.y)**2)**0.5
+            
+            if dist < self.node_radius:
+                self.update_node_dialog(passed_nid=nid)
+                return
+            
     def on_canvas_click(self, event):
         for nid, pos in self.node_positions.items():
             if (event.x - pos[0])**2 + (event.y - pos[1])**2 <= self.node_radius**2:
