@@ -11,9 +11,7 @@ class AStar(Algorithm):
           d_etk = n1.etkilesim - n2.etkilesim
           d_bag = n1.baglanti_sayisi - n2.baglanti_sayisi
 
-          # SADECE Öklid mesafesini döndür.
-          # Çünkü gerçek maliyet (Cost) = 1 + Distance.
-          # Heuristic (Distance) < Cost olduğu sürece A* en hızlı ve doğru yolu bulur.
+
           dist = math.sqrt(d_aktif**2 + d_etk**2 + d_bag**2)
           
           return dist
@@ -31,12 +29,12 @@ class AStar(Algorithm):
         g_score[start_id] = 0.0
 
         pq = []
-        heapq.heappush(pq, (0.0, start_id))  # (f_score, node)
+        heapq.heappush(pq, (0.0, start_id))  
 
         while pq:
             current_f, current = heapq.heappop(pq)
 
-            # stale priority queue kontrolü
+           
             if current_f > g_score[current] + self.heuristic(current, end_id):
                 continue
 
@@ -58,7 +56,7 @@ class AStar(Algorithm):
                 if edge is None:
                     continue
 
-                cost = float(edge.weight)  # isterlere göre: weight = maliyet
+                cost = float(edge.weight)  
                 tentative = g_score[current] + cost
 
                 if tentative < g_score[neighbor]:
