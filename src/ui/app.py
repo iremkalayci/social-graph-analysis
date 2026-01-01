@@ -89,14 +89,14 @@ class App(ctk.CTk):
         self.create_sidebar_label("ALGORITHMS", row=10)
         self.create_sidebar_btn("Run BFS", self.run_bfs_ui, row=11)
         self.create_sidebar_btn("Run DFS", self.run_dfs_ui, row=12)
-        self.create_sidebar_btn("Dijkstra (Shortest)", self.run_dijkstra_ui, row=13)
+        self.create_sidebar_btn("Dijkstra Search", self.run_dijkstra_ui, row=13)
         self.create_sidebar_btn("A* Search", self.run_astar_ui, row=14)
         
         self.create_sidebar_label("ANALYSIS", row=15)
         self.create_sidebar_btn("Top 5 Influencers", self.show_top_nodes, row=16, color="orange")
         self.create_sidebar_btn("Welsh-Powell Color", self.run_coloring_ui, row=17, color="orange")
         self.create_sidebar_btn("Reset View", self.reset_view, row=18, color="red")
-
+        self.create_sidebar_btn("Clear All Data", self.clear_all_nodes, row=19, color="red")
         self.right_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
         self.right_frame.grid_rowconfigure(0, weight=1)
@@ -179,16 +179,15 @@ class App(ctk.CTk):
 
         btn = ctk.CTkButton(self.sidebar, text=text, command=command, fg_color=fg_color, hover_color=hover_color)
         btn.grid(row=row, column=0, padx=20, pady=5, sticky="ew")
-    def draw_graph(self, highlight_nodes=None, color_map=None, path_edges=None):
+    def draw_graph(self, highlight_nodes=None, color_map=None, path_edges=None, custom_palette=None):
         self.canvas.delete("all")
 
-
+        # --- Kenar Çizimi (Burada değişiklik yok) ---
         for key, edge in self.graph.edges.items():
             if edge.a in self.node_positions and edge.b in self.node_positions:
                 x1, y1 = self.node_positions[edge.a]
                 x2, y2 = self.node_positions[edge.b]
                 
-
                 color = "#95a5a6"
                 width = 2
                 
@@ -199,26 +198,20 @@ class App(ctk.CTk):
                     elif w < 10.0: width = 2   
                     else: width = 1            
 
- 
                     gray_val = int(max(50, min(220, 50 + (w * 8))))
                     color = f"#{gray_val:02x}{gray_val:02x}{gray_val:02x}"
-                except:
-                    pass 
-
+                except: pass 
 
                 if path_edges and tuple(sorted((edge.a, edge.b))) in path_edges:
                     color = "#e74c3c" 
                     width = 4
                 
-    
                 self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width, smooth=True)
-                
-         
                 mx, my = (x1+x2)/2, (y1+y2)/2
                 self.canvas.create_oval(mx-9, my-9, mx+9, my+9, fill="white", outline="#bdc3c7")
                 self.canvas.create_text(mx, my, text=f"{edge.weight:.1f}", font=("Arial", 7), fill="black")
 
-
+        # --- Düğüm Çizimi ---
         for node_id, pos in self.node_positions.items():
             x, y = pos
             r = self.node_radius
@@ -226,27 +219,23 @@ class App(ctk.CTk):
             fill_color = "#3498db"
             outline_color = "white"
             
-
             if color_map and node_id in color_map:
-           
-                palette = ["#e57373", "#81c784", "#64b5f6", "#fff176", "#ffb74d", "#ba68c8", "#90a4ae", "#4db6ac"]
+                # EĞER DIŞARIDAN PALET GELDİYSE ONU KULLAN, YOKSA VARSAYILANI
+                if custom_palette:
+                    palette = custom_palette
+                else:
+                    palette = ["#e57373", "#81c784", "#64b5f6", "#fff176", "#ffb74d", "#ba68c8", "#90a4ae", "#4db6ac"]
+                
                 fill_color = palette[color_map[node_id] % len(palette)]
             elif highlight_nodes and node_id in highlight_nodes:
                 fill_color = "#f1c40f" 
 
-      
             self.canvas.create_oval(x-r+3, y-r+3, x+r+3, y+r+3, fill="#bdc3c7", outline="")
-            
-      
             self.canvas.create_oval(x-r, y-r, x+r, y+r, fill=fill_color, outline=outline_color, width=2, tags=f"node_{node_id}")
-            
-          
             self.canvas.create_text(x, y, text=str(node_id), font=("Arial", 10, "bold"), fill="white", tags=f"node_{node_id}")
             
-        
             if node_id in self.graph.nodes:
                 node_name = self.graph.nodes[node_id].name
-          
                 display_name = node_name[:12] + "..." if len(node_name) > 12 else node_name
                 self.canvas.create_text(x, y+r+15, text=display_name, font=("Arial", 9, "bold"), fill="#2c3e50")
 
@@ -487,31 +476,36 @@ class App(ctk.CTk):
             colors = self.graph.color_graph()
             t1 = time.perf_counter()
             
-            self.draw_graph(color_map=colors)
-            self.status_label.configure(text=f"Coloring Done in {(t1-t0)*1000:.2f}ms")
+            # Geniş bir renk havuzu tanımla
+            palette = [
+                "#e57373", "#81c784", "#64b5f6", "#fff176", "#ffb74d", 
+                "#ba68c8", "#90a4ae", "#4db6ac", "#f06292", "#4dd0e1",
+                "#7986cb", "#a1887f", "#ff8a65", "#dce775", "#afb42b"
+            ]
             
+            random.shuffle(palette)
+            
+            self.draw_graph(color_map=colors, custom_palette=palette)
+            
+            self.status_label.configure(text=f"Coloring Done in {(t1-t0)*1000:.2f}ms")
 
             table_data = []
             for node_id, color_code in colors.items():
-                name = self.graph.nodes[node_id].name
-                table_data.append((node_id, name, f"Renk {color_code}"))
+                name = self.graph.nodes[node_id].name if node_id in self.graph.nodes else "Unknown"
+                
+                assigned_color = palette[color_code % len(palette)]
+                
+                table_data.append((node_id, name, f"Grup {color_code} ({assigned_color})"))
             
             table_data.sort(key=lambda x: x[0])
             
             self.show_results_table(
                 title="Welsh-Powell Renklendirme Tablosu",
-                columns=["Node ID", "İsim", "Atanan Renk"],
+                columns=["Node ID", "İsim", "Atanan Renk Grubu"],
                 data=table_data
             )
-        except Exception as e: messagebox.showerror("Error", str(e))
-    def run_coloring_ui(self):
-        try:
-            t0 = time.perf_counter()
-            colors = self.graph.color_graph()
-            self.draw_graph(color_map=colors)
-            t1 = time.perf_counter()
-            self.status_label.configure(text=f"Coloring Done in {(t1-t0)*1000:.2f}ms")
-        except Exception as e: messagebox.showerror("Error", str(e))
+        except Exception as e: 
+            messagebox.showerror("Error", str(e), parent=self)
     def show_top_nodes(self):
         try:
    
@@ -592,7 +586,14 @@ class App(ctk.CTk):
                  self.draw_graph()
                  self.status_label.configure(text=f"Node Removed: {nid}")
              except Exception as e: messagebox.showerror("Error", str(e))
-    
+    def clear_all_nodes(self):
+        if messagebox.askyesno("Dikkat", "Tüm düğümler ve bağlantılar kalıcı olarak silinecek.\nDevam etmek istiyor musunuz?", parent=self):
+            self.graph = Graph()
+            self.node_positions = {}
+            
+            self.draw_graph()
+            
+            self.status_label.configure(text="System cleared. Ready for new data.")
     def update_node_dialog(self, passed_nid=None):
             if passed_nid is not None:
                 nid = passed_nid
