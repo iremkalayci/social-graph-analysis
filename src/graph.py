@@ -128,5 +128,5 @@ class Graph:
            if node_id not in visited:
                 comp = self.run_bfs(node_id)
                 components.append(comp)
-                visited |= comp 
+                visited.update(comp)  
         return components

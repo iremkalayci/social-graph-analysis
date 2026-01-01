@@ -118,12 +118,14 @@ class App(ctk.CTk):
         self.create_sidebar_btn("A* Search", self.run_astar_ui, row=16, color="#8e44ad")
         
         self.create_sidebar_label("ANALYSIS", row=17)
-        self.create_sidebar_btn("Ranking List", self.show_top_nodes, row=18, color="#737a32")
-        self.create_sidebar_btn("Welsh-Powell Color", self.run_coloring_ui, row=19, color="#737a32")
+        self.create_sidebar_btn("Ranking List", self.show_full_ranking, row=18, color="#737a32")
+        self.create_sidebar_btn("Top 5 Influencers", self.show_top_5_influencers, row=19, color="#737a32")
+        self.create_sidebar_btn("Welsh-Powell Color", self.run_coloring_ui, row=20, color="#737a32")
+        self.create_sidebar_btn("Find Communities", self.run_connected_components_ui, row=21, color="#737a32")
 
-        self.create_sidebar_label("RESET", row=20)
-        self.create_sidebar_btn("Reset View", self.reset_view, row=21, color="#813636")
-        self.create_sidebar_btn("Clear All Data", self.clear_all_nodes, row=22, color="#813636")
+        self.create_sidebar_label("RESET", row=22)
+        self.create_sidebar_btn("Reset View", self.reset_view, row=23, color="#813636")
+        self.create_sidebar_btn("Clear All Data", self.clear_all_nodes, row=24, color="#813636")
 
         self.right_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
@@ -898,18 +900,19 @@ class App(ctk.CTk):
                 return
     
     def generate_random_dialog(self):
-  
+        """
+        Kullanıcıdan sayı alarak rastgele ancak gerçekçi bir sosyal ağ grafı oluşturur.
+        Bazı düğümler izole kalabilir, bazıları popüler olabilir.
+        """
         count = simpledialog.askinteger("Rastgele Oluştur", 
                                       "Kaç adet düğüm (Node) oluşturulsun?", 
                                       minvalue=2, maxvalue=500, parent=self)
         if not count:
             return
 
-      
         self.graph = Graph()
         self.node_positions = {}
         
-      
         w = self.canvas.winfo_width()
         h = self.canvas.winfo_height()
         if w < 100: w = 1000 
@@ -917,50 +920,136 @@ class App(ctk.CTk):
         padding = 50
 
         try:
-         
             for i in range(1, count + 1):
                 name = f"User_{i}"
-               
-                akt = round(random.random(), 2)    
-                etk = round(random.uniform(1, 100), 2) 
-                bagl = random.randint(1, 20)         
                 
-              
+                akt = round(random.random(), 2)         
+                etk = round(random.uniform(1, 100), 2)   
+                bagl = 0                                 
+                
                 node = Node(i, name, akt, etk, bagl)
                 self.graph.add_node(node)
                 
-              
                 rx = random.randint(padding, w - padding)
                 ry = random.randint(padding, h - padding)
                 self.node_positions[i] = (rx, ry)
 
-      
             node_ids = list(self.graph.nodes.keys())
             
+            random.shuffle(node_ids)
+            
             for u in node_ids:
-             
+                if random.random() < 0.30:
+                    continue
+                
+                num_links = random.choices([1, 2, 3, 4, 5], weights=[0.50, 0.30, 0.15, 0.04, 0.01])[0]
+                
                 candidates = [n for n in node_ids if n != u]
                 if not candidates: continue
                 
-             
-                num_links = random.randint(1, 4)
                 targets = random.sample(candidates, min(len(candidates), num_links))
                 
                 for v in targets:
                     try:
-                       
                         self.graph.add_edge(u, v)
                     except: 
                         pass 
 
-        
             self.draw_graph()
-            self.status_label.configure(text=f"Rastgele Graf Oluşturuldu: {count} Düğüm")
-            messagebox.showinfo("Başarılı", f"{count} düğümlü rastgele ağ oluşturuldu.", parent=self)
+            
+            edge_count = len(self.graph.edges)
+            self.status_label.configure(text=f"Rastgele Graf Oluşturuldu: {count} Düğüm, {edge_count} Bağlantı")
+            
+            messagebox.showinfo("Başarılı", f"{count} düğümlü gerçekçi sosyal ağ oluşturuldu.\nBağlantı Sayısı: {edge_count}", parent=self)
 
         except Exception as e:
             messagebox.showerror("Hata", str(e), parent=self)
+
+    def run_connected_components_ui(self):
+        try:
+            components = self.graph.connected_components()
+            count = len(components)
+            
+            self.status_label.configure(text=f"Analiz Tamamlandı: {count} adet ayrık topluluk bulundu.")
+            
+            table_data = []
+            
+            color_map = {}
+            
+            for idx, comp in enumerate(components, 1):
+                member_names = []
+                for node_id in comp:
+                    color_map[node_id] = idx 
+                    
+                    if node_id in self.graph.nodes:
+                        member_names.append(self.graph.nodes[node_id].name)
+                
+                members_str = ", ".join(member_names)
+                table_data.append((f"Topluluk {idx}", len(comp), members_str))
+            
+            self.show_results_table(
+                title=f"Bağlı Bileşenler Analizi ({count} Grup)",
+                columns=["Grup Adı", "Kişi Sayısı", "Üyeler"],
+                data=table_data
+            )
+            
+            palette = [
+                "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", 
+                "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
+            ]
+            
+            self.active_color_map = color_map
+            self.active_palette = palette
+            self.draw_graph(color_map=color_map, custom_palette=palette)
+            
+            messagebox.showinfo("Analiz Sonucu", f"Toplam {count} adet birbirinden bağımsız topluluk (bağlı bileşen) tespit edildi.\nGrafik bu gruplara göre renklendirildi.")
+
+        except Exception as e:
+            messagebox.showerror("Hata", str(e))
     
+    def show_full_ranking(self):
+        """Tüm kullanıcıları bağlantı sayısına göre sıralar ve tablo olarak gösterir."""
+        try:
+            nodes = sorted(self.graph.nodes.values(), key=lambda x: len(x.neighbors), reverse=True)
+            
+            table_data = []
+            for i, n in enumerate(nodes, 1):
+                table_data.append((i, n.id, n.name, len(n.neighbors)))
+            
+            self.show_results_table(
+                title="Popülerlik Sıralaması (Tüm Kullanıcılar)",
+                columns=["Sıra", "ID", "İsim", "Bağlantı Sayısı"],
+                data=table_data
+            )
+        except Exception as e:
+            messagebox.showerror("Hata", str(e), parent=self)
+
+    def show_top_5_influencers(self):
+        """Sadece en yüksek 5 kullanıcıyı alır, tabloda gösterir ve GRAFİKTE VURGULAR."""
+        try:
+            all_nodes = sorted(self.graph.nodes.values(), key=lambda x: len(x.neighbors), reverse=True)
+            top_5_nodes = all_nodes[:5]
+            
+            if not top_5_nodes:
+                messagebox.showinfo("Bilgi", "Graf boş, analiz yapılacak düğüm yok.")
+                return
+
+            top_5_ids = {n.id for n in top_5_nodes}
+            self.draw_graph(highlight_nodes=top_5_ids)
+            self.status_label.configure(text="En etkili 5 kullanıcı vurgulandı.")
+            
+            table_data = []
+            for i, n in enumerate(top_5_nodes, 1):
+                table_data.append((i, n.id, n.name, len(n.neighbors)))
+            
+            self.show_results_table(
+                title="En Etkili 5 Kullanıcı (Top 5)",
+                columns=["Sıra", "ID", "İsim", "Bağlantı Sayısı"],
+                data=table_data
+            )
+        except Exception as e:
+            messagebox.showerror("Hata", str(e), parent=self)
+
     def add_edge_from_node_context(self):
         """Sağ tıklanan düğümden başka bir düğüme bağlantı kurar."""
         if self.selected_node_id is not None:
