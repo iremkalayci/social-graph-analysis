@@ -14,13 +14,13 @@
 ## 1. Giriş ve Problem Tanımı
 
 ### 1.1. Projenin Konusu
-Bu proje, kullanıcılar (düğümler) ve aralarındaki ilişkileri (bağlantılar) bir **graf veri yapısı** üzerinde modelleyen görsel bir masaüstü uygulamasıdır. [cite_start]Proje kapsamında, sosyal ağlar üzerindeki etkileşimleri analiz etmek amacıyla çeşitli graf teorisi algoritmaları (BFS, DFS, Dijkstra, A*, Merkezilik Analizi vb.) entegre edilmiştir[cite: 119, 124].
+Bu proje, kullanıcılar (düğümler) ve aralarındaki ilişkileri (bağlantılar) bir **graf veri yapısı** üzerinde modelleyen görsel bir masaüstü uygulamasıdır. Proje kapsamında, sosyal ağlar üzerindeki etkileşimleri analiz etmek amacıyla çeşitli graf teorisi algoritmaları (BFS, DFS, Dijkstra, A*, Merkezilik Analizi vb.) entegre edilmiştir.
 
 ### 1.2. Problem Tanımı
-Günümüzde sosyal ağlardaki karmaşık ilişkilerin anlaşılması, en kısa iletişim yollarının bulunması veya toplulukların (community) tespit edilmesi önemli bir mühendislik problemidir. [cite_start]Bu proje, bu karmaşık ilişkileri nesne yönelimli bir mimari ile modelleyerek; kullanıcıların dinamik olarak yönetilebildiği, ağırlıklı ve yönsüz bir ağ yapısı üzerinde analizler yapılmasını sağlar[cite: 120, 140].
+Günümüzde sosyal ağlardaki karmaşık ilişkilerin anlaşılması, en kısa iletişim yollarının bulunması veya toplulukların (community) tespit edilmesi önemli bir mühendislik problemidir. Bu proje, bu karmaşık ilişkileri nesne yönelimli bir mimari ile modelleyerek; kullanıcıların dinamik olarak yönetilebildiği, ağırlıklı ve yönsüz bir ağ yapısı üzerinde analizler yapılmasını sağlar.
 
 ### 1.3. Projenin Amacı
-Projenin temel amacı, **Nesne Yönelimli Programlama (OOP)**, **Veri Yapıları** ve **Algoritma Analizi** konularındaki teorik bilgilerin gerçek bir yazılım projesine dönüştürülmesidir. [cite_start]Özellikle şu yetkinliklerin kazanılması hedeflenmiştir[cite: 121, 125]:
+Projenin temel amacı, **Nesne Yönelimli Programlama (OOP)**, **Veri Yapıları** ve **Algoritma Analizi** konularındaki teorik bilgilerin gerçek bir yazılım projesine dönüştürülmesidir. Özellikle şu yetkinliklerin kazanılması hedeflenmiştir:
 * Graf veri yapılarının (Node, Edge) tasarımı ve yönetimi.
 * Karmaşık algoritmaların (Gezinme, En Kısa Yol, Renklendirme) görselleştirilmesi.
 * Yazılım tasarım prensiplerine uygun, sürdürülebilir bir mimari kurulması.
@@ -150,12 +150,14 @@ Aşağıdaki değerler, algoritmaların arayüz üzerinden tetiklendiğinde öl�
 
 > *Not: A* algoritmasının performansı, kullanılan sezgisel (heuristic) fonksiyona ve hedefin konumuna göre Dijkstra'dan daha iyi sonuç vermiştir.*
 
-### 4.3. Örnek Test Senaryosu (En Kısa Yol)
+### 4.3. Örnek Test Senaryosu (Dijkstra)
 **Senaryo:** Kullanıcı ID 1 ile ID 20 arasındaki en kısa yolun bulunması.
 1.  **Girdi:** Başlangıç: `1`, Bitiş: `20`.
-2.  **Beklenen Çıktı:** 1 -> 8 -> 5 -> 20 (Toplam Maliyet: ~12.5 birim).
+2.  **Beklenen Çıktı:** 1 -> 15 -> 20 (Toplam Maliyet: ~0.03 birim).
 3.  **Gerçekleşen Çıktı:** Algoritma aynı yolu bulmuş ve görsel arayüzde kırmızı çizgi ile rotayı çizmiştir.
 4.  **Sonuç:** ✅ Başarılı.
+
+<img width="1200" height="833" alt="image" src="https://github.com/user-attachments/assets/f0e46602-c420-45a1-bcfa-e7bed33b825a" />
 
 ---
 
@@ -173,6 +175,8 @@ Uygulama 3 ana panelden oluşur:
 
 ### 5.2. Sonuç Ekranları
 Algoritmalar çalıştırıldığında sonuçlar hem grafik üzerinde renklendirilerek hem de açılır bir **Tablo Penceresi** (Treeview) içinde detaylı liste olarak sunulur.
+
+<img width="597" height="427" alt="image" src="https://github.com/user-attachments/assets/e76949a9-d536-4d7c-b0ef-2165b3afebb2" />
 
 ---
 
