@@ -32,7 +32,69 @@ Proje, **Nesne Yönelimli Programlama (OOP)** prensiplerine sıkı sıkıya bağ
 ### 2.1. Sınıf Yapısı (Class Diagram)
 Projedeki temel sınıflar ve aralarındaki ilişkiler aşağıdaki Mermaid diyagramında gösterilmiştir. `Graph` sınıfı, `Node` ve `Edge` nesnelerini yöneten ana yapıdır. Algoritmalar ise `Algorithm` soyut sınıfından türetilerek polimorfizm sağlanmıştır.
 
-<img width="5344" height="3255" alt="Untitled diagram-2026-01-02-005854" src="https://github.com/user-attachments/assets/1a086204-51dd-4a09-88c0-722ef9d213bd" />
+```mermaid
+
+classDiagram
+direction TB
+
+class Graph {
+  +dict nodes
+  +list edges
+  +add_node(Node)
+  +add_edge(Edge)
+  +get_neighbors(Node)
+}
+
+class Node {
+  +int id
+  +String label
+  +dict properties
+  +get_property(name)
+}
+
+class Edge {
+  +Node source
+  +Node target
+  +float weight
+  +calculate_weight()
+}
+
+class Algorithm {
+  <<abstract>>
+  +run(Graph, start_node, end_node)
+}
+
+class BFS {
+  +run()
+}
+
+class DFS {
+  +run()
+}
+
+class Dijkstra {
+  +run()
+}
+
+class AStar {
+  +run()
+}
+
+class Coloring {
+  +welsh_powell()
+}
+
+%% Relationships
+Graph *-- Node : Contains
+Graph *-- Edge : Contains
+
+Algorithm <|-- BFS
+Algorithm <|-- DFS
+Algorithm <|-- Dijkstra
+Algorithm <|-- AStar
+Algorithm <|-- Coloring
+```
+
 
 ### 2.2. Modül Açıklamaları
 * **Node (Düğüm):** Sosyal ağdaki kullanıcıyı temsil eder. Kullanıcının aktiflik, etkileşim sayısı gibi sayısal özelliklerini tutar.
@@ -52,9 +114,31 @@ Bu bölümde, projede kullanılan graf algoritmalarının çalışma mantıklar�
 BFS, bir başlangıç düğümünden başlayarak, öncelikle o düğümün tüm doğrudan komşularını ziyaret eden, ardından bu komşuların komşularına geçen "katman katman" bir gezinme algoritmasıdır. Veri yapısı olarak **Queue (Kuyruk)** kullanır.
 
 #### Akış Diyagramı
+```mermaid
+flowchart TD
+    A(["Başla"])
+    B["Başlangıç Düğümünü Kuyruğa Ekle"]
+    C["Ziyaret Edildi Olarak İşaretle"]
+    D{"Kuyruk Boş mu?"}
+    E(["Bitir"])
+    F["Kuyruktan Düğüm Çıkar (u)"]
+    G["u'nun Komşularını Al"]
+    H{"Komşu Ziyaret Edildi mi?"}
+    I["Komşuyu Kuyruğa Ekle & İşaretle"]
 
-<img width="2548" height="5812" alt="Untitled diagram-2026-01-02-010117" src="https://github.com/user-attachments/assets/b135efd5-c7a7-49b0-aab4-84d15d9fccb6" />
+    A --> B
+    B --> C
+    C --> D
 
+    D -- Evet --> E
+    D -- Hayır --> F
+    F --> G
+    G --> H
+
+    H -- Hayır --> I
+    I --> D
+    H -- Evet --> D
+```
 
 #### Analiz ve Literatür
 * **Zaman Karmaşıklığı:** $O(V + E)$ (V: Düğüm sayısı, E: Kenar sayısı).
@@ -70,7 +154,30 @@ DFS, bir yola girdiğinde gidebileceği en son noktaya kadar ilerleyen, çıkmaz
 
 #### Akış Diyagramı
 
-<img width="2499" height="4883" alt="Untitled diagram-2026-01-02-010242" src="https://github.com/user-attachments/assets/27aaedff-0cc2-4053-b342-71a6655e083e" />
+```mermaid
+flowchart TD
+    A(["Başla"])
+    B["Başlangıç Düğümünü Yığına Ekle"]
+    C{"Yığın Boş mu?"}
+    D(["Bitir"])
+    E["Yığından Düğüm Çıkar (u)"]
+    F{"u Ziyaret Edildi mi?"}
+    G["u'yu Ziyaret Et"]
+    H["u'nun Komşularını Yığına Ekle"]
+
+    A --> B
+    B --> C
+
+    C -- Evet --> D
+    C -- Hayır --> E
+
+    E --> F
+    F -- Evet --> C
+    F -- Hayır --> G
+
+    G --> H
+    H --> C
+```
 
 #### Analiz ve Literatür
 * **Zaman Karmaşıklığı:** $O(V + E)$.
@@ -85,8 +192,34 @@ DFS, bir yola girdiğinde gidebileceği en son noktaya kadar ilerleyen, çıkmaz
 Dijkstra, ağırlıklı graflarda (negatif kenar ağırlığı olmayan) bir düğümden diğer tüm düğümlere olan en kısa yolu bulur. "Greedy" (Açgözlü) bir yaklaşım sergiler. Başlangıç düğümüne uzaklığı 0, diğerlerine sonsuz atar ve her adımda en küçük maliyetli düğümü seçmek için **Priority Queue (Öncelik Kuyruğu)** kullanır.
 
 #### Akış Diyagramı
+```mermaid
+flowchart TD
+    A(["Başla"])
+    B["Mesafeleri Sonsuz Yap, Kaynak=0"]
+    C["Öncelik Kuyruğuna Ekle (Kaynak, 0)"]
+    D{"Kuyruk Boş mu?"}
+    E(["Bitti"])
+    F["En Küçük Mesafeli Düğümü (u) Çek"]
+    G["u'nun Komşularını (v) Gez"]
+    H{"Mesafe(u) + Ağırlık(u,v) < Mesafe(v)?"}
+    I["Mesafe(v)'yi Güncelle"]
+    J["v'yi Kuyruğa Ekle"]
 
-<img width="2532" height="6429" alt="Untitled diagram-2026-01-02-010400" src="https://github.com/user-attachments/assets/984873db-908a-4200-b4be-52f556529238" />
+    A --> B
+    B --> C
+    C --> D
+
+    D -- Evet --> E
+    D -- Hayır --> F
+    F --> G
+    G --> H
+
+    H -- Evet --> I
+    I --> J
+    J --> D
+
+    H -- Hayır --> D
+```
 
 #### Analiz ve Literatür
 * **Zaman Karmaşıklığı:** $O(E + V \log V)$ (Binary Heap kullanıldığında).
@@ -101,9 +234,43 @@ A*, Dijkstra'nın gelişmiş bir versiyonudur. Hedefe ulaşmak için sadece o an
 Formül: $f(n) = g(n) + h(n)$. Bu sayede aramayı hedefe doğru yönlendirir ve daha hızlı sonuç verir.
 
 #### Akış Diyagramı
+```mermaid
+flowchart TD
+    A(["Başla"])
+    B["Açık ve Kapalı Listeleri Oluştur"]
+    C["Başlangıcı Açık Listeye Ekle (f = 0 + h)"]
+    D{"Açık Liste Boş mu?"}
+    E(["Yol Yok"])
+    F["En Düşük f Değerli Düğümü Seç (current)"]
+    G{"Hedef mi?"}
+    H(["Yolu Döndür"])
+    I["current -> Kapalı Liste"]
+    J["Komşuları Gez"]
+    K["g, h ve f Değerlerini Hesapla"]
+    L{"Daha İyi Yol Var mı?"}
+    M["Listeyi Güncelle"]
 
-<img width="3061" height="7606" alt="Untitled diagram-2026-01-02-010506" src="https://github.com/user-attachments/assets/56d0b436-43a8-49b3-935b-8de95fa894d6" />
+    A --> B
+    B --> C
+    C --> D
 
+    D -- Evet --> E
+    D -- Hayır --> F
+
+    F --> G
+    G -- Evet --> H
+    G -- Hayır --> I
+
+    I --> J
+    J --> K
+    K --> L
+
+    L -- Evet --> M
+    M --> D
+
+    L -- Hayır --> D
+
+```
 #### Analiz ve Literatür
 * **Zaman Karmaşıklığı:** Kullanılan sezgisel (heuristic) fonksiyona bağlıdır. En kötü durumda $O(b^d)$ olabilir.
 * **Literatür:** Hart, Nilsson ve Raphael tarafından 1968'de tanımlanmıştır. Oyun programlama ve robotik yol planlamada standart algoritmadır.
@@ -121,8 +288,33 @@ Graf renklendirme, komşu iki düğümün aynı renge sahip olmamasını hedefle
 
 #### Akış Diyagramı
 
-<img width="2021" height="5741" alt="Untitled diagram-2026-01-02-010603" src="https://github.com/user-attachments/assets/f51337c5-0a0a-441e-a4c9-e2613130ba7b" />
+```mermaid
+flowchart TD
+    A(["Başla"])
+    B["Düğümleri Derecesine Göre Sırala (Azalan)"]
+    C["Renk Sayacı k = 1"]
+    D{"Tüm Düğümler Boyandı mı?"}
+    E(["Bitir"])
+    F["Sıradaki Boyanmamış Düğümü Seç"]
+    G["Seçilen Düğümü Renk(k) ile Boya"]
+    H["Listeyi Gez: Bu renkteki düğümlerle komşu olmayanları bul"]
+    I["Bulunanları Renk(k) ile Boya"]
+    J["k = k + 1"]
 
+    A --> B
+    B --> C
+    C --> D
+
+    D -- Evet --> E
+    D -- Hayır --> F
+
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> D
+
+```
 #### Analiz ve Literatür
 * **Zaman Karmaşıklığı:** Sıralama maliyetinden dolayı $O(V^2)$ veya $O(V \log V + E)$ olarak kabul edilir.
 * **Literatür:** 1967 yılında yayınlanmıştır. Frekans atamaları, ders programı hazırlama ve register allocation (derleyici tasarımı) problemlerinde kullanılır.
